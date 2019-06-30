@@ -1,0 +1,6 @@
+export const SCOPE = 'main';
+export const UPDATE_LOCATION = `${SCOPE}/UPDATE_LOCATION`;
+export const UPDATE_LOCATION_SERVICE_STATUS = `${SCOPE}/UPDATE_LOCATION_SERVICE_STATUS`;
+export const START_TRIP = `${SCOPE}/START_TRIP`;
+export const END_TRIP = `${SCOPE}/END_TRIP`;
+export const UPDATE_DURATION = `${SCOPE}/UPDATE_DURATION`;
