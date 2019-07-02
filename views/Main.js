@@ -22,6 +22,8 @@ const MINUTE = 60;
 const HOUR = MINUTE * 60;
 const kf = new KalmanFilter({R: 0.01, Q: 20});
 
+const roundOf = value => Math.round(value * 100) / 100;
+
 TaskManager.defineTask(BACKGROUND_LOCATION_TRACKER, ({data, error}) => {
   if (error) {
     ToastAndroid.show(error.message, ToastAndroid.SHORT);
@@ -50,8 +52,8 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TRACKER, ({data, error}) => {
     distanceCovered = haversine(lastCoords, currentCoords, {units: 'km'});
   }
 
-  const rawDistanceCovered = Math.round((distanceCovered + lastDistanceCovered) * 100) / 100;
-  const totalDistanceCovered = kf.filter(rawDistanceCovered, location.coords.speed);
+  const rawDistanceCovered = roundOf(distanceCovered + lastDistanceCovered);
+  const totalDistanceCovered = roundOf(kf.filter(rawDistanceCovered, location.coords.speed));
   const maxSpeed = location.coords.speed > lastMaxSpeed ? location.coords.speed : lastMaxSpeed;
   store.dispatch(updateLocation(location, totalDistanceCovered, maxSpeed));
 });
@@ -66,11 +68,11 @@ export class Main extends Component {
   };
 
   static convertMsecToKmph(msec) {
-    return Math.round(msec * 3.6 * 100) / 100;
+    return roundOf(msec * 3.6);
   }
 
   static convertMsecToMiph(msec) {
-    return Math.round(msec * 2.23 * 100) / 100;
+    return roundOf(msec * 2.23);
   }
 
   static formatMinutes(duration) {
@@ -101,7 +103,7 @@ export class Main extends Component {
 
   static avgSpeed(distance, duration) {
     if (!distance || !duration) return 0;
-    return Math.round((distance / (duration / HOUR)) * 100) / 100;
+    return roundOf(distance / (duration / HOUR));
   }
 
   static getSpeed(location) {
