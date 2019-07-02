@@ -19,7 +19,7 @@ import haversine from '../utils/haversine';
 const BACKGROUND_LOCATION_TRACKER = 'Background location tracker';
 const MINUTE = 60;
 const HOUR = MINUTE * 60;
-const ACCURACY_THRESHOLD = 40;
+const ACCURACY_THRESHOLD = 10;
 
 const roundOf = value => Math.round(value * 100) / 100;
 
@@ -51,7 +51,7 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TRACKER, ({data, error}) => {
     distanceCovered = haversine(lastCoords, currentCoords, {units: 'km'});
   }
 
-  let totalDistanceCovered = distanceCovered;
+  let totalDistanceCovered = lastDistanceCovered;
   if (location.coords.accuracy <= ACCURACY_THRESHOLD) {
     totalDistanceCovered = roundOf(distanceCovered + lastDistanceCovered);
   }
