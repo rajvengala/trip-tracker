@@ -15,10 +15,12 @@ import {
   updateDuration,
 } from '../store/main/actions';
 import haversine from '../utils/haversine';
+import KalmanFilter from 'kalmanjs';
 
 const BACKGROUND_LOCATION_TRACKER = 'Background location tracker';
 const MINUTE = 60;
 const HOUR = MINUTE * 60;
+const kf = new KalmanFilter({R: 0.01, Q: 20});
 
 TaskManager.defineTask(BACKGROUND_LOCATION_TRACKER, ({data, error}) => {
   if (error) {
@@ -38,6 +40,7 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TRACKER, ({data, error}) => {
     distanceCovered: lastDistanceCovered,
     maxSpeed: lastMaxSpeed
   } = state.main;
+
   let distanceCovered = 0;
   if (Object.keys(lastLocation).length > 0) {
     const lastCoords = {
@@ -46,8 +49,10 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TRACKER, ({data, error}) => {
     };
     distanceCovered = haversine(lastCoords, currentCoords, {units: 'km'});
   }
+
+  const rawDistanceCovered = Math.round((distanceCovered + lastDistanceCovered) * 100) / 100;
+  const totalDistanceCovered = kf.filter(rawDistanceCovered, location.coords.speed);
   const maxSpeed = location.coords.speed > lastMaxSpeed ? location.coords.speed : lastMaxSpeed;
-  const totalDistanceCovered = Math.round((distanceCovered + lastDistanceCovered) * 100) / 100;
   store.dispatch(updateLocation(location, totalDistanceCovered, maxSpeed));
 });
 
@@ -219,7 +224,7 @@ export class Main extends Component {
             title={tripInProgress ? '  Stop Trip' : '  Start Trip'}
           />
           <Button
-            title='Save Trip'
+            title="Save Trip"
           />
         </View>
       </View>
