@@ -6,7 +6,6 @@ import * as Location from 'expo-location';
 import * as Permissions from 'expo-permissions';
 import Constants from 'expo-constants';
 import * as TaskManager from 'expo-task-manager';
-import { SQLite } from 'expo-sqlite';
 import {
   updateLocation,
   updateLocationServiceStatus,
@@ -15,12 +14,12 @@ import {
   updateDuration,
 } from '../store/main/actions';
 import haversine from '../utils/haversine';
-import KalmanFilter from 'kalmanjs';
+
 
 const BACKGROUND_LOCATION_TRACKER = 'Background location tracker';
 const MINUTE = 60;
 const HOUR = MINUTE * 60;
-const kf = new KalmanFilter({R: 0.01, Q: 20});
+const ACCURACY_THRESHOLD = 40;
 
 const roundOf = value => Math.round(value * 100) / 100;
 
@@ -52,8 +51,11 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TRACKER, ({data, error}) => {
     distanceCovered = haversine(lastCoords, currentCoords, {units: 'km'});
   }
 
-  const rawDistanceCovered = roundOf(distanceCovered + lastDistanceCovered);
-  const totalDistanceCovered = roundOf(kf.filter(rawDistanceCovered, location.coords.speed));
+  let totalDistanceCovered = distanceCovered;
+  if (location.coords.accuracy <= ACCURACY_THRESHOLD) {
+    totalDistanceCovered = roundOf(distanceCovered + lastDistanceCovered);
+  }
+
   const maxSpeed = location.coords.speed > lastMaxSpeed ? location.coords.speed : lastMaxSpeed;
   store.dispatch(updateLocation(location, totalDistanceCovered, maxSpeed));
 });
@@ -113,11 +115,15 @@ export class Main extends Component {
     return 0;
   }
 
-  componentWillMount() {
+  async componentWillMount() {
     if (Platform.OS === 'android' && !Constants.isDevice) {
       ToastAndroid.show('App does not work in an Android emulator. Try it on your device', ToastAndroid.SHORT);
     } else {
       const ignore = this.checkLocationService();
+      let { status } = await Permissions.askAsync(Permissions.LOCATION);
+      if (status !== 'granted') {
+        ToastAndroid.show('App will not work without access to location service');
+      }
     }
   }
 
