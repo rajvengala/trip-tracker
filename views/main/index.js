@@ -30,17 +30,13 @@ export class Main extends Component {
   };
 
   async componentWillMount() {
-    if (Platform.OS === 'android' && !Constants.isDevice) {
-      ToastAndroid.show('App does not work in an Android emulator. Try it on your device', ToastAndroid.SHORT);
-    } else {
-      const ignore = this.checkLocationService();
-      let {status} = await Permissions.askAsync(
-        Permissions.LOCATION,
-        Permissions.CAMERA_ROLL
-      );
-      if (status !== 'granted') {
-        ToastAndroid.show('App may not function without access to location and storage permissions');
-      }
+    const ignore = this.checkLocationService();
+    let {status} = await Permissions.askAsync(
+      Permissions.LOCATION,
+      Permissions.CAMERA_ROLL
+    );
+    if (status !== 'granted') {
+      ToastAndroid.show('App may not function without location and storage permissions');
     }
   }
 
@@ -88,12 +84,15 @@ export class Main extends Component {
     const {allLocations} = this.props;
     const filename = `${new Date().toString().replace(/ GMT.*/, '').replace(/[ |:]/g, '-')}.json`;
     const filepath = `${FileSystem.documentDirectory}${filename}`;
-    const asset = await MediaLibrary.createAssetAsync(filepath);
-    const file = await FileSystem.writeAsStringAsync(
-      filepath,
-      JSON.stringify(allLocations),
-      {encoding: FileSystem.EncodingType.UTF8});
-    ToastAndroid.show(`Saved data to file ${file}`);
+    await MediaLibrary.createAssetAsync(filepath);
+    const file = FileSystem.writeAsStringAsync(filepath, JSON.stringify(allLocations));
+    ToastAndroid.show(`Saved data to ${file}`);
+  };
+
+  getRegion = () => {
+    const { allLocations, location } = this.props;
+    const lastLocation = allLocations.length > 0 ? allLocations[allLocations.length - 1] : location;
+    return mainUtils.regionFrom(lastLocation.coords);
   };
 
   render() {
@@ -107,6 +106,7 @@ export class Main extends Component {
       tripEndTime,
       polylineCoordinates,
     } = this.props;
+
     const {isMapReady} = this.state;
 
     return (
@@ -179,7 +179,7 @@ export class Main extends Component {
             (
               <MapView
                 style={mainStyle.map}
-                initialRegion={mainUtils.regionFrom(location.coords)}
+                region={this.getRegion()}
                 onMapReady={this.onMapReady}
                 provider="google"
                 mapType="standard"
