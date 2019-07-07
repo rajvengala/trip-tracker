@@ -4,6 +4,8 @@ import { Platform, Text, View, StyleSheet, Button, ToastAndroid } from 'react-na
 import * as Location from 'expo-location';
 import * as Permissions from 'expo-permissions';
 import Constants from 'expo-constants';
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import MapView, { Polyline } from 'react-native-maps';
 
 import {
@@ -32,9 +34,12 @@ export class Main extends Component {
       ToastAndroid.show('App does not work in an Android emulator. Try it on your device', ToastAndroid.SHORT);
     } else {
       const ignore = this.checkLocationService();
-      let {status} = await Permissions.askAsync(Permissions.LOCATION);
+      let {status} = await Permissions.askAsync(
+        Permissions.LOCATION,
+        Permissions.CAMERA_ROLL
+      );
       if (status !== 'granted') {
-        ToastAndroid.show('App will not work without access to location service');
+        ToastAndroid.show('App may not function without access to location and storage permissions');
       }
     }
   }
@@ -53,7 +58,6 @@ export class Main extends Component {
     } = this.props;
     const ignore = Location.startLocationUpdatesAsync(locationChangeListenerTask.BACKGROUND_LOCATION_TRACKER, {
       accuracy: Location.Accuracy.BestForNavigation,
-      // distanceInterval: 5,
     });
     startTripAction();
     this.timerCallback = setInterval(() => {
@@ -80,9 +84,16 @@ export class Main extends Component {
     updateLocationServiceStatusAction(locationServiceStatus, 'Location Service is disabled');
   };
 
-  logAllLocations = () => {
-    const { allLocations } = this.props;
-    console.log(allLocations);
+  logAllLocations = async () => {
+    const {allLocations} = this.props;
+    const filename = `${new Date().toString().replace(/ GMT.*/, '').replace(/[ |:]/g, '-')}.json`;
+    const filepath = `${FileSystem.documentDirectory}${filename}`;
+    const asset = await MediaLibrary.createAssetAsync(filepath);
+    const file = await FileSystem.writeAsStringAsync(
+      filepath,
+      JSON.stringify(allLocations),
+      {encoding: FileSystem.EncodingType.UTF8});
+    ToastAndroid.show(`Saved data to file ${file}`);
   };
 
   render() {
@@ -97,7 +108,7 @@ export class Main extends Component {
       polylineCoordinates,
     } = this.props;
     const {isMapReady} = this.state;
-    
+
     return (
       <View style={mainStyle.container}>
         <View style={mainStyle.controls}>
