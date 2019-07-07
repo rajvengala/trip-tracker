@@ -5,12 +5,14 @@ export const initialState = {
   location: {},
   locationServiceStatus: false,
   tripInProgress: false,
-  lastLocation: {},
   distanceCovered: 0,
   duration: 0,
   tripStartTime: 0,
   tripEndTime: 0,
   maxSpeed: 0,
+  history: {
+    locations: [],
+  }
 };
 
 const main = (state = initialState, action) => {
@@ -21,14 +23,16 @@ const main = (state = initialState, action) => {
         location: {
           $set: location,
         },
-        lastLocation: {
-          $set: JSON.parse(JSON.stringify(state.location)),
-        },
         distanceCovered: {
           $set: distanceCovered,
         },
         maxSpeed: {
           $set: maxSpeed,
+        },
+        history: {
+          locations: {
+            $push: [location],
+          }
         }
       });
     }
@@ -51,6 +55,9 @@ const main = (state = initialState, action) => {
         tripStartTime: {
           $set: now,
         },
+        history: {
+          $set: initialState.history,
+        }
       });
     }
 
