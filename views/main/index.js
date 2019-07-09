@@ -54,8 +54,8 @@ export class Main extends Component {
     } = this.props;
     const ignore = Location.startLocationUpdatesAsync(locationChangeListenerTask.BACKGROUND_LOCATION_TRACKER, {
       accuracy: Location.Accuracy.BestForNavigation,
-      distanceInterval: 5,
-
+      timeInterval: 20 * 1000,
+      distanceInterval: 30,
     });
     startTripAction();
     this.timerCallback = setInterval(() => {
