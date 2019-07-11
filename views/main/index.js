@@ -1,12 +1,10 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { Platform, Text, View, StyleSheet, Button, ToastAndroid } from 'react-native';
+import { Text, View, Button, ToastAndroid } from 'react-native';
 import * as Location from 'expo-location';
 import * as Permissions from 'expo-permissions';
-import Constants from 'expo-constants';
-import * as FileSystem from 'expo-file-system';
-import * as MediaLibrary from 'expo-media-library';
 import MapView, { Polyline } from 'react-native-maps';
+import { SQLite } from 'expo-sqlite';
 
 import {
   updateLocation,
@@ -14,6 +12,7 @@ import {
   startTrip,
   endTrip,
   updateDuration,
+  saveTripDataStart,
 } from '../../store/main/actions';
 import { mainComponentSelector } from './selector';
 import { mainStyle } from './style';
@@ -28,16 +27,32 @@ export class Main extends Component {
   state = {
     isMapReady: false,
   };
+  db = null;
 
   async componentWillMount() {
     const ignore = this.checkLocationService();
     let {status} = await Permissions.askAsync(
       Permissions.LOCATION,
-      Permissions.CAMERA_ROLL
     );
     if (status !== 'granted') {
-      ToastAndroid.show('App may not function without location and storage permissions');
+      ToastAndroid.show('App does not function without location permission', ToastAndroid.SHORT);
     }
+  }
+
+  componentDidMount() {
+    this.db = SQLite.openDatabase(mainUtils.DB_NAME);
+    this.db.transaction(tx => {
+      tx.executeSql(
+        'create table if not exists trip_tracker (id text primary key not null, tripData text);',
+        [],
+        (tx, rs) => {
+        }, (tx, err) => {
+          ToastAndroid.show(err, ToastAndroid.SHORT);
+        });
+    }, err => {
+      ToastAndroid.show(err, ToastAndroid.SHORT);
+    }, () => {
+    });
   }
 
   onMapReady = () => {
@@ -54,8 +69,7 @@ export class Main extends Component {
     } = this.props;
     const ignore = Location.startLocationUpdatesAsync(locationChangeListenerTask.BACKGROUND_LOCATION_TRACKER, {
       accuracy: Location.Accuracy.BestForNavigation,
-      timeInterval: 20 * 1000,
-      distanceInterval: 30,
+      timeInterval: 1000,
     });
     startTripAction();
     this.timerCallback = setInterval(() => {
@@ -82,17 +96,17 @@ export class Main extends Component {
     updateLocationServiceStatusAction(locationServiceStatus, 'Location Service is disabled');
   };
 
-  logAllLocations = async () => {
-    const {allLocations} = this.props;
-    const filename = `${new Date().toString().replace(/ GMT.*/, '').replace(/[ |:]/g, '-')}.json`;
-    const filepath = `${FileSystem.documentDirectory}${filename}`;
-    await MediaLibrary.createAssetAsync(filepath);
-    const file = FileSystem.writeAsStringAsync(filepath, JSON.stringify(allLocations));
-    ToastAndroid.show(`Saved data to ${file}`);
+  saveTrip = () => {
+    const recordId = `${new Date().toString().replace(/ GMT.*/, '').replace(/[ |:]/g, '-')}`;
+    const {
+      saveTripDataStart: saveTripDataStartAction,
+      allLocations: tripData,
+    } = this.props;
+    saveTripDataStartAction(this.db, recordId, JSON.stringify(tripData));
   };
 
   getRegion = () => {
-    const { allLocations, location } = this.props;
+    const {allLocations, location} = this.props;
     const lastLocation = allLocations.length > 0 ? allLocations[allLocations.length - 1] : location;
     return mainUtils.regionFrom(lastLocation.coords);
   };
@@ -107,20 +121,29 @@ export class Main extends Component {
       tripStartTime,
       tripEndTime,
       polylineCoordinates,
+      saveTrip,
     } = this.props;
 
     const {isMapReady} = this.state;
+
+    if (saveTrip.status !== null) {
+      !saveTrip.status && !saveTrip.err
+        ? ToastAndroid.show(saveTrip.err, ToastAndroid.SHORT)
+        : ToastAndroid.show('Saved data', ToastAndroid.SHORT);
+    }
 
     return (
       <View style={mainStyle.container}>
         <View style={mainStyle.controls}>
           <Button
+            disabled={saveTrip.status}
             onPress={tripInProgress ? this.stopTrip : this.startTrip}
             title={tripInProgress ? '  Stop Trip' : '  Start Trip'}
           />
           <Button
             title="Save Trip"
-            onPress={this.logAllLocations}
+            disabled={!!tripInProgress || saveTrip.status}
+            onPress={this.saveTrip}
           />
         </View>
         <View style={mainStyle.header}>
@@ -206,5 +229,6 @@ export default connect(
     startTrip,
     endTrip,
     updateDuration,
+    saveTripDataStart,
   }
 )(Main);

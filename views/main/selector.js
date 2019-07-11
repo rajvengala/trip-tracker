@@ -20,6 +20,7 @@ const mainComponentSelector = createSelector(
     tripEndTime: main.tripEndTime,
     polylineCoordinates: main.history.locations.map(polylineCoords),
     allLocations: main.history.locations,
+    saveTrip: main.saveTrip,
   }),
 );
 

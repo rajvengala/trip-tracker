@@ -12,6 +12,10 @@ export const initialState = {
   maxSpeed: 0,
   history: {
     locations: [],
+  },
+  saveTrip: {
+    status: null,
+    err: null,
   }
 };
 
@@ -78,6 +82,34 @@ const main = (state = initialState, action) => {
       return update(state, {
         duration: {
           $set: diff,
+        },
+      });
+    }
+
+    case types.SAVE_TRIP_DATA_START: {
+      return update(state, {
+        saveTrip: {
+          status: {
+            $set: true,
+          },
+          err: {
+            $set: null,
+          }
+        },
+      });
+    }
+
+    case types.SAVE_TRIP_DATA_END: {
+      const {errMsg} = action;
+      const err = `${errMsg.stmtErr}. ${errMsg.transErr}`;
+      return update(state, {
+        saveTrip: {
+          status: {
+            $set: false,
+          },
+          err: {
+            $set: err,
+          },
         },
       });
     }

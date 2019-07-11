@@ -1,5 +1,6 @@
 const MINUTE = 60;
 const HOUR = MINUTE * 60;
+const DB_NAME = 'trip-tracker';
 
 function roundOf(value) {
   return Math.round(value * 100) / 100;
@@ -89,5 +90,6 @@ export default {
   avgSpeed,
   getSpeed,
   regionFrom,
+  DB_NAME,
 };
 

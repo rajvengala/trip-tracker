@@ -24,3 +24,15 @@ export const updateDuration = () => ({
   type: types.UPDATE_DURATION,
 });
 
+export const saveTripDataStart = (db, tripId, tripData) => ({
+  type: types.SAVE_TRIP_DATA_START,
+  db,
+  tripId,
+  tripData,
+});
+
+export const saveTripDataEnd = (errMsg) => ({
+  type: types.SAVE_TRIP_DATA_END,
+  errMsg,
+});
+
