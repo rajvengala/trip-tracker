@@ -1,39 +1,62 @@
-const earth = {
-  MILE: 3959,
-  KM: 6371,
-  M: 6371000,
-  NMI: 3440
-};
+// Credits: https://github.com/njj/haversine
 
-haversine.EARTH = earth;
+var haversine = (function () {
+  var RADII = {
+    km:    6371,
+    mile:  3960,
+    meter: 6371000,
+    nmi:   3440
+  };
 
-function haversine(start, end, options) {
-  options = defaults(options);
+  // convert to radians
+  var toRad = function (num) {
+    return num * Math.PI / 180
+  };
 
-  const startLatitude = getRadians(start.latitude, options.isRadians);
-  const endLatitude = getRadians(end.latitude, options.isRadians);
-  const longitudeDelta = coordinateDifference(start.longitude, end.longitude, options.isRadians);
+  // convert coordinates to standard format based on the passed format option
+  var convertCoordinates = function (format, coordinates) {
+    switch (format) {
+      case '[lat,lon]':
+        return { latitude: coordinates[0], longitude: coordinates[1] };
+      case '[lon,lat]':
+        return { latitude: coordinates[1], longitude: coordinates[0] };
+      case '{lon,lat}':
+        return { latitude: coordinates.lat, longitude: coordinates.lon };
+      case '{lat,lng}':
+        return { latitude: coordinates.lat, longitude: coordinates.lng };
+      case 'geojson':
+        return { latitude: coordinates.geometry.coordinates[1], longitude: coordinates.geometry.coordinates[0] };
+      default:
+        return coordinates
+    }
+  };
 
-  const c = Math.acos(Math.sin(startLatitude) * Math.sin(endLatitude) + Math.cos(startLatitude) * Math.cos(endLatitude) * Math.cos(longitudeDelta));
+  return function haversine (startCoordinates, endCoordinates, options) {
+    options   = options || {};
 
-  return options.radius * c;
-}
+    var R = options.unit in RADII
+      ? RADII[options.unit]
+      : RADII.km;
 
-function coordinateDifference(a, b, isRadians) {
-  const delta = b - a;
-  return getRadians(delta, isRadians);
-}
+    var start = convertCoordinates(options.format, startCoordinates);
+    var end = convertCoordinates(options.format, endCoordinates);
 
-function getRadians(input, isRadians) {
-  return isRadians ? input : (input * (Math.PI / 180));
-}
+    var dLat = toRad(end.latitude - start.latitude);
+    var dLon = toRad(end.longitude - start.longitude);
+    var lat1 = toRad(start.latitude);
+    var lat2 = toRad(end.latitude);
 
-function defaults(options) {
-  options = options || {};
-  options.radius = options.radius || earth.MILE;
-  options.isRadians = (typeof options.isRadians === 'boolean') ? options.isRadians : false;
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.sin(dLon/2) * Math.sin(dLon/2) * Math.cos(lat1) * Math.cos(lat2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
-  return options;
-}
+    if (options.threshold) {
+      return options.threshold > (R * c)
+    }
+
+    return R * c;
+  }
+
+})();
 
 export default haversine;

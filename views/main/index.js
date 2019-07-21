@@ -69,7 +69,6 @@ export class Main extends Component {
     } = this.props;
     const ignore = Location.startLocationUpdatesAsync(locationChangeListenerTask.BACKGROUND_LOCATION_TRACKER, {
       accuracy: Location.Accuracy.BestForNavigation,
-      timeInterval: 1000,
     });
     startTripAction();
     this.timerCallback = setInterval(() => {
@@ -211,7 +210,16 @@ export class Main extends Component {
                 showsPointsOfInterest
                 showsScale
               >
-                {isMapReady ? <Polyline coordinates={polylineCoordinates} /> : null}
+                {isMapReady
+                  ?
+                  (
+                    <Polyline
+                      coordinates={polylineCoordinates}
+                      strokeWidth={7}
+                      strokeColor="#366ed8"
+                    />
+                  )
+                  : null}
               </MapView>
             )
           }
